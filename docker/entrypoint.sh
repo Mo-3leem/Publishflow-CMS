@@ -5,9 +5,15 @@
 #   2. run pending migrations exactly once, failing loudly if they do not apply,
 #   3. hand over to the Next.js server.
 #
-# Seeding is deliberately NOT run here: a production restart must never
-# overwrite real content. Seed explicitly with `docker compose run --rm app
-# node docker/seed.mjs` on a fresh deployment.
+# Seeding is deliberately NOT run here by default: a production restart must
+# never overwrite real content. Seed explicitly with `docker compose run --rm
+# app node docker/seed.mjs` on a fresh deployment.
+#
+# Set DEMO_SEED=true to seed the full demo dataset on every start instead. That
+# exists for throwaway demo hosts such as Render Free, whose filesystem is
+# ephemeral: without it a restart leaves an empty database that nobody can log
+# into. The seed is idempotent — it looks every record up by its natural key and
+# updates rather than inserting — so an existing database is never reset.
 
 set -eu
 
@@ -40,6 +46,13 @@ mkdir -p "$(dirname "${DATABASE_PATH:-/app/data/publishflow.db}")" "${UPLOAD_DIR
 echo "[entrypoint] applying database migrations"
 node /app/docker/migrate.mjs || fail "Migrations failed; refusing to start with an unknown schema."
 
-# --- 4. run -----------------------------------------------------------------
-echo "[entrypoint] migrations complete, starting the server"
+# --- 4. optional demo seed --------------------------------------------------
+if [ "${DEMO_SEED:-false}" = "true" ]; then
+  [ -f /app/docker/seed-demo.cjs ] || fail "DEMO_SEED=true but docker/seed-demo.cjs is missing from the image."
+  echo "[entrypoint] DEMO_SEED=true — applying the idempotent demo dataset"
+  node /app/docker/seed-demo.cjs || fail "Demo seed failed."
+fi
+
+# --- 5. run -----------------------------------------------------------------
+echo "[entrypoint] startup checks complete, starting the server"
 exec "$@"

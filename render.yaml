@@ -1,0 +1,109 @@
+# Render Blueprint — demo deployment of PublishFlow CMS.
+#
+# Docker runtime rather than native Node: the Dockerfile already builds the
+# Next.js standalone output, compiles the three native addons
+# (better-sqlite3, argon2, sharp), runs migrations through an entrypoint and
+# drops to a non-root user. Reusing it means the deployed image is the same
+# artifact the CI pipeline builds.
+#
+# EPHEMERAL STORAGE: the free instance type has no persistent disk. The SQLite
+# database at /app/data and the uploads at /app/uploads live in the container
+# filesystem and are DESTROYED on every restart, redeploy, and on the automatic
+# spin-down after inactivity. This blueprint therefore sets DEMO_SEED=true so a
+# fresh container always comes back with the demo dataset. Do not put real
+# content here — attach a persistent disk on a paid instance type for that.
+
+services:
+  - type: web
+    name: publishflow-cms
+    runtime: docker
+    plan: free
+    region: oregon # change to the region nearest you
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+
+    # The entrypoint runs migrations (and the demo seed) before the server
+    # starts, so the health check is the first thing that must succeed.
+    healthCheckPath: /api/v1/health
+
+    envVars:
+      # --- runtime -----------------------------------------------------------
+      - key: NODE_ENV
+        value: production
+
+      # Render injects PORT and expects the process to bind it on 0.0.0.0.
+      # The Next.js standalone server reads both PORT and HOSTNAME; HOSTNAME is
+      # already 0.0.0.0 in the Dockerfile, and Render's injected PORT overrides
+      # the image default.
+
+      # APP_URL must match the public origin exactly: it is the CSRF origin
+      # allow-list and the base for canonical URLs, Open Graph tags and the
+      # sitemap. Render only exposes the hostname to a blueprint, not a full
+      # https:// URL, so this is set by hand once the service URL is known —
+      # see the README. Startup fails fast if it is missing or not https.
+      - key: APP_URL
+        sync: false
+
+      # --- storage paths -----------------------------------------------------
+      # Both live inside the ephemeral container filesystem.
+      - key: DATABASE_PATH
+        value: /app/data/publishflow.db
+      - key: UPLOAD_DIR
+        value: /app/uploads
+
+      # --- secrets -----------------------------------------------------------
+      # generateValue makes Render mint a random value once and keep it for the
+      # life of the service. Never commit these.
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: CSRF_SECRET
+        generateValue: true
+      - key: VIEWER_HASH_SECRET
+        generateValue: true
+      - key: SCHEDULE_JOB_SECRET
+        generateValue: true
+
+      # --- demo dataset ------------------------------------------------------
+      # Required on an ephemeral host: without it a restarted container has an
+      # empty database and nobody can sign in. The seed is idempotent.
+      - key: DEMO_SEED
+        value: 'true'
+
+      # Demo credentials. These are throwaway values for a public demo; they are
+      # deliberately visible in this file so the deployment is reproducible.
+      # Change them (or drop DEMO_SEED) before putting anything real here.
+      - key: SEED_ADMIN_EMAIL
+        value: admin@publishflow.local
+      - key: SEED_ADMIN_PASSWORD
+        sync: false # set in the Render dashboard; see README
+      - key: SEED_EDITOR_EMAIL
+        value: editor@publishflow.local
+      - key: SEED_EDITOR_PASSWORD
+        sync: false
+      - key: SEED_AUTHOR_EMAIL
+        value: author@publishflow.local
+      - key: SEED_AUTHOR_PASSWORD
+        sync: false
+      - key: SEED_AUTHOR2_EMAIL
+        value: author2@publishflow.local
+      - key: SEED_AUTHOR2_PASSWORD
+        sync: false
+
+      # --- tunables (defaults are fine) --------------------------------------
+      - key: SESSION_COOKIE_NAME
+        value: pf_session
+      - key: SESSION_TTL_HOURS
+        value: '168'
+      - key: MAX_JSON_BYTES
+        value: '1048576'
+      - key: MAX_UPLOAD_BYTES
+        value: '5242880'
+      # Render terminates TLS at its edge and forwards X-Forwarded-For.
+      - key: TRUST_PROXY
+        value: 'true'
+      - key: ENABLE_FTS
+        value: 'true'
+      - key: SITE_TIMEZONE
+        value: UTC
+      - key: LOG_LEVEL
+        value: info

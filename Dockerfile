@@ -48,6 +48,18 @@ ENV NEXT_TELEMETRY_DISABLED=1 \
 
 RUN pnpm build
 
+# Bundle the canonical TypeScript seed to plain CommonJS so the runtime image can
+# run the demo dataset without shipping tsx or the TypeScript sources. Bundling
+# the real seed rather than reimplementing it keeps one definition of the demo
+# data. The two native addons stay external — the standalone bundle already
+# traced them — and `react-server` resolves the `server-only` marker to a no-op.
+RUN node_modules/.bin/esbuild src/server/db/seed.ts \
+    --bundle --platform=node --format=cjs --target=node22 \
+    --conditions=react-server \
+    --alias:@=./src \
+    --external:better-sqlite3 --external:argon2 \
+    --outfile=docker/seed-demo.cjs
+
 # ---------------------------------------------------------------------------
 # 3. Runtime — standalone server, non-root, no build tools.
 # ---------------------------------------------------------------------------
@@ -81,6 +93,9 @@ COPY --from=builder --chown=node:node /app/scripts ./scripts
 # runner is plain JavaScript that uses the same better-sqlite3 copy the
 # standalone bundle already traced.
 COPY --chown=node:node docker/ ./docker/
+# The demo seed is the bundle produced in the builder stage, not the checked-in
+# sources, so it must be copied from there rather than from the build context.
+COPY --from=builder --chown=node:node /app/docker/seed-demo.cjs ./docker/seed-demo.cjs
 RUN chmod +x ./docker/entrypoint.sh
 
 USER node
