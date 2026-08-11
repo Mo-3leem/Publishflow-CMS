@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(node --version)",
+      "PowerShell(pnpm --version)",
+      "PowerShell(corepack --version)",
+      "PowerShell(Get-Command nvm -ErrorAction SilentlyContinue)",
+      "PowerShell(npm --version)",
+      "PowerShell(corepack enable pnpm)",
+      "PowerShell(corepack prepare pnpm@latest --activate)"
+    ]
+  }
+}

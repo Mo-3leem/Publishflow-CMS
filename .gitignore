@@ -1,0 +1,61 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# next.js
+.next/
+out/
+next-env.d.ts
+
+# production
+build/
+dist/
+
+# generated database + wal/shm sidecars
+data/*
+!data/.gitkeep
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# uploaded media
+uploads/*
+!uploads/.gitkeep
+
+# backups
+backups/
+
+# testing / reports
+coverage/
+playwright-report/
+test-results/
+blob-report/
+.playwright/
+.e2e/
+tmp/
+.tmp/
+ci-tmp/
+
+# local env
+.env
+.env.local
+.env.*.local
+
+# editors / os
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# misc
+.vercel
+*.tsbuildinfo

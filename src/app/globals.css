@@ -1,0 +1,236 @@
+@import 'tailwindcss';
+
+/*
+ * PublishFlow design tokens.
+ *
+ * A neutral slate palette with a single blue accent. Status colours are always
+ * paired with a text label or icon in the markup — colour alone never carries
+ * meaning (WCAG 1.4.1).
+ */
+@theme {
+  --color-ink-50: #f8fafc;
+  --color-ink-100: #f1f5f9;
+  --color-ink-200: #e2e8f0;
+  --color-ink-300: #cbd5e1;
+  --color-ink-400: #94a3b8;
+  --color-ink-500: #64748b;
+  --color-ink-600: #475569;
+  --color-ink-700: #334155;
+  --color-ink-800: #1e293b;
+  --color-ink-900: #0f172a;
+  --color-ink-950: #020617;
+
+  --color-brand-50: #eff6ff;
+  --color-brand-100: #dbeafe;
+  --color-brand-200: #bfdbfe;
+  --color-brand-300: #93c5fd;
+  --color-brand-400: #60a5fa;
+  --color-brand-500: #3b82f6;
+  --color-brand-600: #2563eb;
+  --color-brand-700: #1d4ed8;
+  --color-brand-800: #1e40af;
+  --color-brand-900: #1e3a8a;
+
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    'Noto Sans', sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-ink-200);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-ink-50);
+    color: var(--color-ink-900);
+    font-family: var(--font-sans);
+    font-feature-settings: 'cv02', 'cv03', 'cv04';
+    line-height: 1.6;
+  }
+
+  /* A visible focus ring is required for keyboard navigation; never remove it. */
+  :focus-visible {
+    outline: 2px solid var(--color-brand-600);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    line-height: 1.25;
+    font-weight: 650;
+    letter-spacing: -0.015em;
+    color: var(--color-ink-900);
+  }
+
+  ::selection {
+    background-color: var(--color-brand-200);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /*
+   * Rendered Markdown.
+   *
+   * `react-markdown` is configured without `rehype-raw`, so raw HTML in post
+   * content is escaped rather than executed. These styles only affect the
+   * elements the Markdown AST produces.
+   */
+  .prose-article {
+    color: var(--color-ink-700);
+    font-size: 1.0625rem;
+    line-height: 1.75;
+  }
+
+  .prose-article > * + * {
+    margin-top: 1.15em;
+  }
+
+  .prose-article h2 {
+    margin-top: 2em;
+    margin-bottom: 0.6em;
+    font-size: 1.5rem;
+  }
+
+  .prose-article h3 {
+    margin-top: 1.6em;
+    margin-bottom: 0.5em;
+    font-size: 1.2rem;
+  }
+
+  .prose-article a {
+    color: var(--color-brand-700);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .prose-article a:hover {
+    color: var(--color-brand-800);
+  }
+
+  .prose-article ul,
+  .prose-article ol {
+    padding-left: 1.5rem;
+  }
+
+  .prose-article ul {
+    list-style: disc;
+  }
+
+  .prose-article ol {
+    list-style: decimal;
+  }
+
+  .prose-article li + li {
+    margin-top: 0.35em;
+  }
+
+  .prose-article blockquote {
+    border-left: 3px solid var(--color-brand-300);
+    padding-left: 1rem;
+    color: var(--color-ink-600);
+    font-style: italic;
+  }
+
+  .prose-article code {
+    background-color: var(--color-ink-100);
+    border: 1px solid var(--color-ink-200);
+    border-radius: 0.25rem;
+    padding: 0.1em 0.35em;
+    font-family: var(--font-mono);
+    font-size: 0.875em;
+  }
+
+  .prose-article pre {
+    background-color: var(--color-ink-900);
+    color: var(--color-ink-100);
+    border-radius: 0.6rem;
+    padding: 1rem 1.15rem;
+    overflow-x: auto;
+    font-size: 0.875rem;
+  }
+
+  .prose-article pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    color: inherit;
+    font-size: inherit;
+  }
+
+  .prose-article table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9375rem;
+    display: block;
+    overflow-x: auto;
+  }
+
+  .prose-article th,
+  .prose-article td {
+    border: 1px solid var(--color-ink-200);
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+  }
+
+  .prose-article th {
+    background-color: var(--color-ink-100);
+    font-weight: 600;
+  }
+
+  .prose-article img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.6rem;
+  }
+
+  .prose-article hr {
+    border-top: 1px solid var(--color-ink-200);
+  }
+
+  /* Skip link: hidden until focused, then pinned to the top-left. */
+  .skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 100;
+  }
+
+  .skip-link:focus {
+    left: 0.75rem;
+    top: 0.75rem;
+    background: var(--color-ink-900);
+    color: white;
+    padding: 0.6rem 1rem;
+    border-radius: 0.5rem;
+  }
+}
+
+/* Table wrappers scroll horizontally on small screens rather than overflowing. */
+@layer utilities {
+  .scroll-shadow {
+    background:
+      linear-gradient(to right, white 30%, rgba(255, 255, 255, 0)) left / 40px 100% no-repeat,
+      linear-gradient(to left, white 30%, rgba(255, 255, 255, 0)) right / 40px 100% no-repeat;
+  }
+}

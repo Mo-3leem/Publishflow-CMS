@@ -1,0 +1,83 @@
+# PublishFlow CMS — single-instance deployment.
+#
+# SQLite allows one writer at a time and the uploads live on a local volume, so
+# this stack runs exactly ONE application replica. Scaling out would require
+# moving to PostgreSQL (or libSQL/Turso) plus object storage — see
+# docs/architecture-decisions.md.
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: publishflow-cms:latest
+    container_name: publishflow
+    restart: unless-stopped
+    # One instance only. `docker compose up --scale app=2` would give each
+    # replica its own SQLite file and silently diverge.
+    deploy:
+      replicas: 1
+    ports:
+      - '${PORT:-3000}:3000'
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      DATABASE_PATH: /app/data/publishflow.db
+      UPLOAD_DIR: /app/uploads
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+    volumes:
+      - cms_data:/app/data
+      - cms_uploads:/app/uploads
+      - cms_backups:/app/backups
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/api/v1/health').then(r=>r.json()).then(b=>process.exit(b.status==='ok'?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # Publishes due scheduled posts once a minute by calling the protected
+  # internal endpoint. Runs in the same network, never exposed publicly.
+  scheduler:
+    image: publishflow-cms:latest
+    container_name: publishflow-scheduler
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    env_file:
+      - .env
+    entrypoint: ['/bin/sh', '-c']
+    command:
+      - |
+        echo "[scheduler] polling for due scheduled posts every 60s"
+        while true; do
+          node -e "
+            fetch('http://app:3000/api/v1/internal/jobs/publish-scheduled', {
+              method: 'POST',
+              headers: { authorization: 'Bearer ' + process.env.SCHEDULE_JOB_SECRET },
+            })
+              .then((r) => r.json())
+              .then((b) => {
+                if (b?.data?.published) console.log('[scheduler] published', b.data.published, 'post(s)');
+              })
+              .catch((e) => console.error('[scheduler]', e.message));
+          "
+          sleep 60
+        done
+
+volumes:
+  cms_data:
+    driver: local
+  cms_uploads:
+    driver: local
+  cms_backups:
+    driver: local

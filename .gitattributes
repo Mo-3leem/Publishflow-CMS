@@ -1,0 +1,21 @@
+# Normalise line endings so the repository content is identical on every
+# platform. Without this, a Windows checkout would commit CRLF into the shell
+# scripts and the Docker image would fail with "bad interpreter: no such file
+# or directory".
+* text=auto eol=lf
+
+# Scripts that are executed inside the container MUST stay LF.
+*.sh text eol=lf
+docker/entrypoint.sh text eol=lf
+
+# Binary assets must never be touched.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.ico binary
+*.db binary
+*.gz binary
+
+# Keep the lockfile out of diffs and language statistics.
+pnpm-lock.yaml linguist-generated=true -diff

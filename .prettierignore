@@ -1,0 +1,13 @@
+node_modules
+.next
+coverage
+playwright-report
+test-results
+blob-report
+data
+uploads
+backups
+pnpm-lock.yaml
+next-env.d.ts
+drizzle/meta
+CMS_CLAUDE_CODE_MASTER_SPEC.md
