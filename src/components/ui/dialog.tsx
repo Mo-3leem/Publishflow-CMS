@@ -39,6 +39,18 @@ export function Dialog({
   const titleId = React.useId();
   const descriptionId = React.useId();
 
+  /**
+   * `onClose` is almost always an inline arrow at the call site, so its identity
+   * changes on every parent render. Reading it through a ref keeps the focus
+   * effect below depending on `open` alone: the effect must run once per open,
+   * never per keystroke, or it would pull focus out of whatever the user is
+   * typing into. The Escape handler still calls the latest callback.
+   */
+  const onCloseRef = React.useRef(onClose);
+  React.useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
   React.useEffect(() => {
     if (!open) return;
 
@@ -51,7 +63,7 @@ export function Dialog({
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (event.key !== 'Tab' || !panel) return;
@@ -83,7 +95,8 @@ export function Dialog({
       document.body.style.overflow = previousOverflow;
       previouslyFocused.current?.focus();
     };
-  }, [open, onClose]);
+    // `open` only — see the onCloseRef note above.
+  }, [open]);
 
   if (!open) return null;
 
