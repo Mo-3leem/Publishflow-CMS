@@ -59,7 +59,8 @@ test('editorial round trip against the live deployment', async ({ page }) => {
 
   await test.step('author signs in and the dashboard loads', async () => {
     await signIn(page, author);
-    await expect(page.getByRole('link', { name: 'Posts' })).toBeVisible();
+    // `exact` matters: the dashboard also links "All posts".
+    await expect(page.getByRole('link', { name: 'Posts', exact: true })).toBeVisible();
   });
 
   await test.step('author is denied an admin-only action', async () => {
@@ -103,7 +104,10 @@ test('editorial round trip against the live deployment', async ({ page }) => {
     await signIn(page, editor);
 
     await page.goto(`/admin/posts?status=IN_REVIEW&q=${encodeURIComponent(subject)}`);
-    await expect(page.getByRole('link', { name: subject })).toBeVisible();
+    // `exact` matters: each row also carries "Edit <subject>" and
+    // "Revision history for <subject>" action links, so a substring match would
+    // resolve to three elements.
+    await expect(page.getByRole('link', { name: subject, exact: true })).toBeVisible();
   });
 
   await test.step('editor requests changes with a typed review note', async () => {
