@@ -21,6 +21,7 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "test:smoke:remote": "playwright test --config=playwright.remote.config.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --conditions=react-server src/server/db/migrate.ts",
     "db:seed": "tsx --conditions=react-server src/server/db/seed.ts",
