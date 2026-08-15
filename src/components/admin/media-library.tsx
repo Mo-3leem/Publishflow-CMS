@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Upload, Trash2, Pencil, ImageIcon, LayoutGrid, List } from 'lucide-react';
+import { Upload, Trash2, Pencil, ImageIcon, LayoutGrid, List, Search } from 'lucide-react';
 import type { MediaDto } from '@/server/services/media-service';
 import type { Principal } from '@/lib/domain';
 import { can, canEditMedia } from '@/lib/permissions';
@@ -34,6 +34,10 @@ export function MediaLibrary({
 }) {
   const queryClient = useQueryClient();
   const [page, setPage] = React.useState(1);
+  // Draft is what the user types; `search` is what the server sees, so each
+  // keystroke does not fire a request.
+  const [draftSearch, setDraftSearch] = React.useState('');
+  const [search, setSearch] = React.useState('');
   const [view, setView] = React.useState<'grid' | 'list'>('grid');
   const [uploading, setUploading] = React.useState(false);
   const [uploadError, setUploadError] = React.useState<string | null>(null);
@@ -43,8 +47,11 @@ export function MediaLibrary({
   const inputRef = React.useRef<HTMLInputElement>(null);
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: queryKeys.media.list(String(page)),
-    queryFn: () => apiList<MediaDto>(`/media?page=${page}&pageSize=24`),
+    queryKey: queryKeys.media.list(`${page}:${search}`),
+    queryFn: () =>
+      apiList<MediaDto>(
+        `/media?page=${page}&pageSize=24${search ? `&q=${encodeURIComponent(search)}` : ''}`,
+      ),
   });
 
   const upload = async (files: FileList) => {
@@ -154,6 +161,49 @@ export function MediaLibrary({
 
       {uploadError ? <Alert tone="error">{uploadError}</Alert> : null}
 
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          setPage(1);
+          setSearch(draftSearch.trim());
+        }}
+        className="border-ink-200 flex flex-wrap gap-2 rounded-xl border bg-white p-3"
+      >
+        <div className="relative min-w-56 flex-1">
+          <label htmlFor="media-search" className="sr-only">
+            Search media
+          </label>
+          <Search
+            aria-hidden="true"
+            className="text-ink-400 pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2"
+          />
+          <Input
+            id="media-search"
+            type="search"
+            value={draftSearch}
+            onChange={(event) => setDraftSearch(event.target.value)}
+            placeholder="Search by file name or alt text…"
+            className="pl-9"
+          />
+        </div>
+        <Button type="submit" variant="outline">
+          Search
+        </Button>
+        {search ? (
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => {
+              setDraftSearch('');
+              setSearch('');
+              setPage(1);
+            }}
+          >
+            Clear
+          </Button>
+        ) : null}
+      </form>
+
       <Card className="overflow-hidden">
         {isError ? (
           <div className="p-5">
@@ -168,13 +218,19 @@ export function MediaLibrary({
         ) : assets.length === 0 ? (
           <EmptyState
             icon={ImageIcon}
-            title="No images yet"
-            description="Upload an image to use it as a post featured image or the site logo."
+            title={search ? `No images match “${search}”` : 'No images yet'}
+            description={
+              search
+                ? 'Try a different file name or alt text.'
+                : 'Upload an image to use it as a post featured image or the site logo.'
+            }
             action={
-              <Button type="button" onClick={() => inputRef.current?.click()}>
-                <Upload aria-hidden="true" className="h-4 w-4" />
-                Upload
-              </Button>
+              search ? null : (
+                <Button type="button" onClick={() => inputRef.current?.click()}>
+                  <Upload aria-hidden="true" className="h-4 w-4" />
+                  Upload
+                </Button>
+              )
             }
           />
         ) : view === 'grid' ? (

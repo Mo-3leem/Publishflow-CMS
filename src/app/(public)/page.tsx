@@ -37,25 +37,38 @@ export default async function HomePage({
 
   return (
     <>
-      <section className="border-ink-200 from-ink-50 border-b bg-gradient-to-b to-white">
+      <section className="border-ink-200 from-ink-50 relative border-b bg-gradient-to-b to-white">
         <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
-          <h1 className="text-ink-900 max-w-3xl text-3xl font-bold tracking-tight sm:text-4xl">
+          <p className="text-brand-700 text-xs font-semibold tracking-[0.12em] uppercase">
+            {meta.total > 0
+              ? `${meta.total} published ${meta.total === 1 ? 'article' : 'articles'}`
+              : 'Editorial'}
+          </p>
+          <h1 className="text-ink-900 mt-2.5 max-w-3xl text-4xl font-bold tracking-tight text-balance sm:text-5xl">
             {settings.siteName}
           </h1>
           {settings.siteDescription ? (
-            <p className="text-ink-600 mt-3 max-w-2xl text-lg">{settings.siteDescription}</p>
+            <p className="text-ink-600 mt-4 max-w-2xl text-lg leading-relaxed text-pretty">
+              {settings.siteDescription}
+            </p>
           ) : null}
 
           {categories.length > 0 ? (
-            <nav aria-label="Categories" className="mt-7 flex flex-wrap gap-2">
+            <nav aria-label="Categories" className="mt-8 flex flex-wrap gap-2">
               {categories.map((category) => (
                 <Link
                   key={category.id}
                   href={`/categories/${category.slug}`}
-                  className="border-ink-300 text-ink-700 hover:border-brand-400 hover:text-brand-700 inline-flex items-center gap-1.5 rounded-full border bg-white px-3.5 py-1.5 text-sm font-medium shadow-sm transition-colors"
+                  className="border-ink-200 text-ink-700 hover:border-brand-300 hover:bg-brand-50/60 hover:text-brand-800 inline-flex items-center gap-2 rounded-full border bg-white py-1.5 pr-2.5 pl-3.5 text-sm font-medium shadow-sm transition-colors"
                 >
                   {category.title}
-                  <span className="text-ink-400 text-xs tabular-nums">{category.postCount}</span>
+                  <span className="bg-ink-100 text-ink-600 rounded-full px-1.5 py-0.5 text-xs tabular-nums">
+                    {category.postCount}
+                    <span className="sr-only">
+                      {' '}
+                      {category.postCount === 1 ? 'article' : 'articles'}
+                    </span>
+                  </span>
                 </Link>
               ))}
             </nav>
@@ -66,9 +79,11 @@ export default async function HomePage({
       <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
         <div className="flex items-baseline justify-between gap-4">
           <h2 className="text-ink-900 text-xl font-semibold">Latest articles</h2>
-          {meta.total > 0 ? (
+          {/* The total is already stated in the hero, so this links onward instead
+              of repeating it. */}
+          {meta.totalPages > 1 ? (
             <p className="text-ink-500 text-sm">
-              {meta.total} published {meta.total === 1 ? 'article' : 'articles'}
+              Page {meta.page} of {meta.totalPages}
             </p>
           ) : null}
         </div>

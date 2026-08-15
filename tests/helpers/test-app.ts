@@ -47,6 +47,8 @@ export interface TestResponse {
   body: unknown;
   /** `body.data` for convenience, typed by the caller. */
   data: <T>() => T;
+  /** `body.meta` from a list response, or null when the body carries none. */
+  meta: () => { page: number; pageSize: number; total: number; totalPages: number } | null;
   error: () => { code: string; message: string; details?: Record<string, unknown> } | null;
 }
 
@@ -161,6 +163,12 @@ export function createClient(): TestContext {
       headers: response.headers,
       body,
       data: <T>() => (body as { data: T })?.data,
+      meta: () =>
+        (
+          body as {
+            meta?: { page: number; pageSize: number; total: number; totalPages: number };
+          }
+        )?.meta ?? null,
       error: () =>
         (body as { error?: { code: string; message: string; details?: Record<string, unknown> } })
           ?.error ?? null,

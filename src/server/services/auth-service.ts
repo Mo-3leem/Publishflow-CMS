@@ -28,7 +28,14 @@ import type { ActorContext } from './context';
  */
 
 const LOGIN_WINDOW_MINUTES = 15;
-const LOGIN_MAX_ATTEMPTS = 10;
+/**
+ * Five failures per (normalised email + client) per window.
+ *
+ * Counted per identity rather than per IP alone so a shared NAT does not lock
+ * out a whole office, and cleared on a successful sign-in so a legitimate user
+ * who mistypes twice is never penalised.
+ */
+const LOGIN_MAX_ATTEMPTS = 5;
 
 /**
  * A real Argon2id hash of a value nobody knows, computed once per process.

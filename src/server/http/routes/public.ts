@@ -47,28 +47,43 @@ publicRoutes.get('/categories/:slug/posts', (c) => {
   );
 });
 
-/** List or search published posts, depending on whether `q` is present. */
-publicRoutes.get('/posts', (c) => {
-  const query = parseQuery(c, publicListQuery);
-  const settings = getPublicSettings();
+/**
+ * List or search published posts, depending on whether `q` is present.
+ *
+ * The search branch runs an FTS5 (or LIKE) scan and is reachable without
+ * authentication, so it is metered. Plain listing is an indexed read and is
+ * deliberately left unmetered by the `when` predicate.
+ */
+publicRoutes.get(
+  '/posts',
+  rateLimit({
+    windowMs: 60_000,
+    max: 30,
+    scope: 'public-search',
+    when: (c) => (c.req.query('q') ?? '').trim().length > 0,
+  }),
+  (c) => {
+    const query = parseQuery(c, publicListQuery);
+    const settings = getPublicSettings();
 
-  if (query.q && query.q.length > 0) {
-    const result = searchPublishedPosts(
-      {
-        q: query.q,
-        page: query.page,
-        pageSize: query.pageSize,
-        categorySlug: query.category ?? null,
-      },
-      settings.postsPerPage,
+    if (query.q && query.q.length > 0) {
+      const result = searchPublishedPosts(
+        {
+          q: query.q,
+          page: query.page,
+          pageSize: query.pageSize,
+          categorySlug: query.category ?? null,
+        },
+        settings.postsPerPage,
+      );
+      return c.json({ data: result.data, meta: result.meta, searchMode: result.mode });
+    }
+
+    return c.json(
+      listPublishedPosts({ ...query, categorySlug: query.category ?? null }, settings.postsPerPage),
     );
-    return c.json({ data: result.data, meta: result.meta, searchMode: result.mode });
-  }
-
-  return c.json(
-    listPublishedPosts({ ...query, categorySlug: query.category ?? null }, settings.postsPerPage),
-  );
-});
+  },
+);
 
 publicRoutes.get('/posts/:slug', (c) => {
   const post = getPublishedPostBySlug(c.req.param('slug'));
