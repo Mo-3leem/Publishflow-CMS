@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /**
@@ -12,13 +13,18 @@ import { cn } from '@/lib/utils';
  */
 
 const controlBase =
-  'w-full rounded-lg border bg-white px-3 py-2 text-sm text-ink-900 shadow-sm transition-colors ' +
-  'placeholder:text-ink-400 disabled:cursor-not-allowed disabled:bg-ink-50 disabled:text-ink-500';
+  'w-full rounded-[var(--radius-control)] border bg-white px-3 py-2 text-sm text-ink-900 ' +
+  'shadow-raised transition-colors placeholder:text-ink-400 ' +
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 ' +
+  // A disabled control must not look merely "greyer" than an empty one, so it
+  // also loses its shadow and takes a not-allowed cursor.
+  'disabled:cursor-not-allowed disabled:bg-ink-100 disabled:text-ink-500 disabled:shadow-none ' +
+  'read-only:bg-ink-50';
 
 const controlState = (invalid?: boolean) =>
   invalid
-    ? 'border-red-400 focus:border-red-500'
-    : 'border-ink-300 hover:border-ink-400 focus:border-brand-500';
+    ? 'border-red-400 focus-visible:border-red-500 focus-visible:ring-red-500/40'
+    : 'border-ink-300 hover:border-ink-400 focus-visible:border-brand-500 focus-visible:ring-brand-500/40';
 
 export interface FieldProps {
   label: string;
@@ -47,17 +53,18 @@ export function Field({
   return (
     <div className={cn('space-y-1.5', className)}>
       <div className="flex items-baseline justify-between gap-3">
-        {/* The required marker sits outside <label> deliberately: keeping it in
-            would make the label's text "Password*", which reads badly aloud and
-            breaks exact label matching. It is aria-hidden, so the asterisk is a
-            purely visual cue. */}
+        {/* The required marker sits outside <label> deliberately: inside, it
+            would become part of the label's text ("Password Required"), which
+            reads badly aloud and breaks exact label matching in tests. */}
         <span className="flex items-baseline">
           <label htmlFor={htmlFor} className="text-ink-800 block text-sm font-medium">
             {label}
           </label>
+          {/* A word beats an asterisk: users routinely miss or misread `*`, and
+              this sits outside <label> so it never joins the accessible name. */}
           {required ? (
-            <span className="ml-0.5 text-red-600" aria-hidden="true">
-              *
+            <span className="text-ink-500 ml-2 text-[0.6875rem] font-medium tracking-wide uppercase">
+              Required
             </span>
           ) : null}
         </span>
@@ -66,18 +73,22 @@ export function Field({
 
       {children}
 
+      {/* Help text stays visible next to the control rather than living in a
+          placeholder, which disappears the moment the user starts typing. */}
       {hint && messages.length === 0 ? (
-        <p id={`${htmlFor}-hint`} className="text-ink-500 text-xs">
+        <p id={`${htmlFor}-hint`} className="text-ink-500 text-xs leading-relaxed">
           {hint}
         </p>
       ) : null}
 
       {messages.length > 0 ? (
-        <ul id={`${htmlFor}-error`} className="space-y-0.5">
+        <ul id={`${htmlFor}-error`} className="space-y-1">
           {messages.map((message) => (
-            <li key={message} className="flex gap-1.5 text-xs text-red-700">
-              <span aria-hidden="true">•</span>
-              {message}
+            <li key={message} className="flex items-start gap-1.5 text-xs font-medium text-red-700">
+              {/* An icon as well as colour, so the error is not signalled by
+                  colour alone. */}
+              <AlertCircle aria-hidden="true" className="mt-px h-3.5 w-3.5 shrink-0" />
+              <span>{message}</span>
             </li>
           ))}
         </ul>

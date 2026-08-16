@@ -244,13 +244,24 @@ export function AdminShell({
             onClick={closeDrawer}
             aria-current={active ? 'page' : undefined}
             className={cn(
-              'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+              // 44px touch target, and a left rail marks the active section so
+              // it reads at a glance rather than by colour alone.
+              'focus-visible:ring-brand-600 relative flex min-h-11 items-center gap-2.5 rounded-[var(--radius-control)] px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none',
               active
-                ? 'bg-brand-50 text-brand-800 ring-brand-200 ring-1 ring-inset'
+                ? 'bg-brand-50 text-brand-800'
                 : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900',
             )}
           >
-            <Icon aria-hidden="true" className="h-4.5 w-4.5 shrink-0" />
+            {active ? (
+              <span
+                aria-hidden="true"
+                className="bg-brand-600 absolute top-2 bottom-2 -left-3 w-1 rounded-r-full"
+              />
+            ) : null}
+            <Icon
+              aria-hidden="true"
+              className={cn('h-4.5 w-4.5 shrink-0', active ? 'text-brand-700' : 'text-ink-400')}
+            />
             {item.label}
           </Link>
         );

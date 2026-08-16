@@ -156,7 +156,9 @@ export function MarkdownEditor({
                 title={action.label}
                 aria-label={action.label}
                 disabled={mode === 'preview'}
-                className="text-ink-600 hover:bg-ink-200 hover:text-ink-900 rounded-md p-1.5 disabled:cursor-not-allowed disabled:opacity-40"
+                // p-2 around a 16px icon gives a 32px target — comfortably past
+                // the 24px WCAG minimum without making the toolbar bulky.
+                className="text-ink-600 hover:bg-ink-200 hover:text-ink-900 focus-visible:ring-brand-600 rounded-[var(--radius-control)] p-2 transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <Icon aria-hidden="true" className="h-4 w-4" />
               </button>
@@ -178,7 +180,7 @@ export function MarkdownEditor({
                 onClick={() => setMode(item.value)}
                 aria-pressed={mode === item.value}
                 className={cn(
-                  'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
+                  'focus-visible:ring-brand-600 inline-flex items-center gap-1.5 rounded-[var(--radius-control)] px-2.5 py-1.5 text-xs font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none',
                   mode === item.value
                     ? 'text-ink-900 bg-white shadow-sm'
                     : 'text-ink-600 hover:text-ink-900',

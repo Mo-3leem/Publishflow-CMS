@@ -66,7 +66,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
             placeholder="e.g. optimistic locking"
             maxLength={120}
             autoComplete="off"
-            className="border-ink-300 placeholder:text-ink-400 hover:border-ink-400 focus:border-brand-500 h-11 w-full rounded-lg border bg-white px-4 text-sm shadow-sm"
+            className="border-ink-300 placeholder:text-ink-400 hover:border-ink-400 focus-visible:border-brand-500 focus-visible:ring-brand-500/40 shadow-raised h-11 w-full rounded-[var(--radius-control)] border bg-white px-4 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
           />
         </div>
 
@@ -78,7 +78,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
             id="category"
             name="category"
             defaultValue={params.category ?? ''}
-            className="border-ink-300 hover:border-ink-400 focus:border-brand-500 h-11 w-full rounded-lg border bg-white px-3 text-sm shadow-sm"
+            className="border-ink-300 hover:border-ink-400 focus-visible:border-brand-500 focus-visible:ring-brand-500/40 shadow-raised h-11 w-full rounded-[var(--radius-control)] border bg-white px-3 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
           >
             <option value="">All categories</option>
             {categories.map((category) => (
@@ -95,21 +95,26 @@ export default async function SearchPage({ searchParams }: PageProps) {
         </Button>
       </form>
 
-      <div className="mt-10">
+      <section className="mt-10" aria-labelledby="search-results">
+        {/* Keeps the outline h1 -> h2 -> h3; the page heading already says
+            "Search", so this label is for assistive tech only. */}
+        <h2 id="search-results" className="sr-only">
+          Search results
+        </h2>
         {!result ? (
-          <div className="border-ink-300 rounded-xl border border-dashed bg-white">
+          <div className="border-ink-300 rounded-[var(--radius-surface)] border border-dashed bg-white">
             <EmptyState
               icon={SearchIcon}
               title="Enter a search term"
-              description="Results only ever include published articles."
+              description="Search titles, summaries and article bodies. Results only ever include published articles."
             />
           </div>
         ) : result.data.length === 0 ? (
-          <div className="border-ink-300 rounded-xl border border-dashed bg-white">
+          <div className="border-ink-300 rounded-[var(--radius-surface)] border border-dashed bg-white">
             <EmptyState
               icon={SearchX}
               title={`No results for “${query}”`}
-              description="Try a shorter or more general term, or clear the category filter."
+              description="Check the spelling, try a shorter or more general term, or clear the category filter."
             />
           </div>
         ) : (
@@ -132,7 +137,7 @@ export default async function SearchPage({ searchParams }: PageProps) {
             ) : null}
           </>
         )}
-      </div>
+      </section>
     </div>
   );
 }

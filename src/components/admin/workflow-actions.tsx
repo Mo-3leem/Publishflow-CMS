@@ -48,6 +48,30 @@ const VARIANTS: Record<WorkflowAction, 'primary' | 'outline' | 'danger'> = {
   'restore-draft': 'outline',
 };
 
+/**
+ * One sentence describing the next editorial step, written for the person who
+ * can actually take it — an author sees "submit", an editor sees "publish or
+ * send back".
+ */
+function nextStepHint(status: PostDetail['status'], actions: WorkflowAction[]): string {
+  if (actions.includes('submit')) {
+    return 'This is a draft. Submit it for review when you are ready for an editor to look at it.';
+  }
+  if (actions.includes('publish') && actions.includes('request-changes')) {
+    return 'Waiting for your review. Publish it, schedule it for later, or send it back with a note.';
+  }
+  if (actions.includes('publish')) {
+    return 'Scheduled to publish automatically. You can publish it now instead, or cancel the schedule.';
+  }
+  if (actions.includes('archive')) {
+    return 'Live on the public site. Archiving removes it from the site but keeps its history.';
+  }
+  if (actions.includes('restore-draft')) {
+    return 'Archived and hidden from the public site. Restoring returns it to draft for editing.';
+  }
+  return `This post is ${status.replace('_', ' ').toLowerCase()}.`;
+}
+
 /** Actions that need extra input before they can run. */
 const NEEDS_DIALOG: Record<WorkflowAction, boolean> = {
   submit: false,
@@ -129,15 +153,29 @@ export function WorkflowActions({
 
   if (actions.length === 0) {
     return (
-      <p className="text-ink-500 text-sm">
-        No workflow actions are available to you while this post is{' '}
-        {post.status.replace('_', ' ').toLowerCase()}.
-      </p>
+      <div className="border-ink-200 bg-ink-50 rounded-[var(--radius-control)] border p-3">
+        <p className="text-ink-600 text-sm">
+          This post is {post.status.replace('_', ' ').toLowerCase()} and there is nothing for you to
+          do here.{' '}
+          {post.status === 'IN_REVIEW'
+            ? 'An editor will review it next.'
+            : 'An editor or administrator can move it on.'}
+        </p>
+      </div>
     );
   }
 
+  // The single action that advances the editorial flow gets primary weight;
+  // everything else steps back. `availableActions` already returns them in
+  // lifecycle order, so the first is the forward one.
+  const [primary, ...secondary] = actions;
+
   return (
     <div className="space-y-3">
+      {/* Says what happens next in plain language, so a non-technical user is
+          not left inferring the workflow from button labels alone. */}
+      <p className="text-ink-600 text-sm">{nextStepHint(post.status, actions)}</p>
+
       {dirty ? (
         <Alert tone="warning">
           You have unsaved changes. Save them first — workflow actions operate on the version
@@ -147,25 +185,46 @@ export function WorkflowActions({
 
       {error && !dialogAction ? <Alert tone="error">{error}</Alert> : null}
 
-      <div className="flex flex-wrap gap-2">
-        {actions.map((action) => {
-          const Icon = ICONS[action];
-          return (
-            <Button
-              key={action}
-              type="button"
-              variant={VARIANTS[action]}
-              size="sm"
-              disabled={dirty || (pending !== null && pending !== action)}
-              loading={pending === action}
-              onClick={() => onClick(action)}
-            >
-              {pending !== action ? <Icon aria-hidden="true" className="h-4 w-4" /> : null}
-              {WORKFLOW_ACTION_LABELS[action]}
-            </Button>
-          );
-        })}
-      </div>
+      {primary ? (
+        <Button
+          type="button"
+          variant={VARIANTS[primary]}
+          className="w-full"
+          disabled={dirty || (pending !== null && pending !== primary)}
+          loading={pending === primary}
+          onClick={() => onClick(primary)}
+        >
+          {pending !== primary
+            ? (() => {
+                const Icon = ICONS[primary];
+                return <Icon aria-hidden="true" className="h-4 w-4" />;
+              })()
+            : null}
+          {WORKFLOW_ACTION_LABELS[primary]}
+        </Button>
+      ) : null}
+
+      {secondary.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {secondary.map((action) => {
+            const Icon = ICONS[action];
+            return (
+              <Button
+                key={action}
+                type="button"
+                variant={VARIANTS[action] === 'primary' ? 'outline' : VARIANTS[action]}
+                size="sm"
+                disabled={dirty || (pending !== null && pending !== action)}
+                loading={pending === action}
+                onClick={() => onClick(action)}
+              >
+                {pending !== action ? <Icon aria-hidden="true" className="h-4 w-4" /> : null}
+                {WORKFLOW_ACTION_LABELS[action]}
+              </Button>
+            );
+          })}
+        </div>
+      ) : null}
 
       <Dialog
         open={dialogAction === 'request-changes'}

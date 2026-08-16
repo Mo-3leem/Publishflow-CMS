@@ -1,7 +1,7 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: ['assure-convention-launches-scanning.trycloudflare.com'],
+  allowedDevOrigins: ['*.trycloudflare.com'],
   output: 'standalone',
   reactStrictMode: true,
   poweredByHeader: false,

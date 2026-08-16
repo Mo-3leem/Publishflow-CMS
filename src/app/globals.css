@@ -35,6 +35,24 @@
     ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
     'Noto Sans', sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+
+  /*
+   * One radius scale, used everywhere. Controls stay at `md`, containers at
+   * `lg`, and only pills go fully round — so nothing reads as arbitrarily
+   * rounded.
+   */
+  --radius-control: 0.5rem;
+  --radius-surface: 0.75rem;
+
+  /*
+   * Two elevations only. Borders carry most of the separation; shadow marks
+   * "this floats above the page" (dropdown, dialog) rather than decorating.
+   */
+  --shadow-raised: 0 1px 2px 0 rgb(15 23 42 / 0.04), 0 1px 3px 0 rgb(15 23 42 / 0.06);
+  --shadow-overlay: 0 10px 30px -10px rgb(15 23 42 / 0.25), 0 2px 8px -2px rgb(15 23 42 / 0.1);
+
+  /* Comfortable long-form measure: ~68 characters at the body size. */
+  --measure-prose: 40rem;
 }
 
 @layer base {
@@ -100,22 +118,40 @@
     color: var(--color-ink-700);
     font-size: 1.0625rem;
     line-height: 1.75;
+    /* Long-form measure. Unconstrained, the body ran to ~87 characters a line
+       on a wide screen, which is past the comfortable 60–80 range. */
+    max-width: var(--measure-prose);
+    text-wrap: pretty;
   }
 
   .prose-article > * + * {
     margin-top: 1.15em;
   }
 
+  /* Headings need more space above than below so they group with the text they
+     introduce rather than floating between two blocks. */
   .prose-article h2 {
-    margin-top: 2em;
-    margin-bottom: 0.6em;
+    margin-top: 2.25em;
+    margin-bottom: 0.55em;
     font-size: 1.5rem;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
   }
 
   .prose-article h3 {
-    margin-top: 1.6em;
-    margin-bottom: 0.5em;
+    margin-top: 1.75em;
+    margin-bottom: 0.45em;
     font-size: 1.2rem;
+    text-wrap: balance;
+  }
+
+  /* Wide children opt out of the measure so tables, code and images can use the
+     full column width. */
+  .prose-article pre,
+  .prose-article table,
+  .prose-article img,
+  .prose-article hr {
+    max-width: none;
   }
 
   .prose-article a {
@@ -226,11 +262,24 @@
   }
 }
 
-/* Table wrappers scroll horizontally on small screens rather than overflowing. */
 @layer utilities {
   .scroll-shadow {
     background:
       linear-gradient(to right, white 30%, rgba(255, 255, 255, 0)) left / 40px 100% no-repeat,
       linear-gradient(to left, white 30%, rgba(255, 255, 255, 0)) right / 40px 100% no-repeat;
+  }
+
+  /*
+   * A horizontal scroller that is not itself positioned is NOT the containing
+   * block for absolutely positioned descendants, so it does not clip them.
+   * Tailwind's `.sr-only` is `position: absolute`, so screen-reader text inside
+   * a wide table escaped the scroller and stretched the document's scroll width
+   * — producing phantom horizontal page scroll at tablet widths even though
+   * every visible element fitted. Making every horizontal scroller a containing
+   * block fixes the whole class of bug in one place; `position: relative` on a
+   * scroll container has no visual effect.
+   */
+  .overflow-x-auto {
+    position: relative;
   }
 }

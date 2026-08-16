@@ -6,6 +6,7 @@ import {
   sqliteHandle,
   type TestContext,
 } from '../helpers/test-app';
+import type { Principal } from '@/lib/domain';
 
 let cleanup: () => void;
 let editor: TestContext;
@@ -397,5 +398,40 @@ describe('read counting', () => {
       body: { expectedVersion: post.version, readsCount: 1_000_000, subject: 'Still zero reads' },
     });
     expect(response.data<Post>().readsCount).toBe(0);
+  });
+
+  /**
+   * Closes the loop the reported bug ran through: a recorded view has to reach
+   * the number the dashboard actually prints, not just the posts table.
+   *
+   * The dashboard is a Server Component, so it calls the service directly — the
+   * same call the admin page makes, rather than an HTTP route that does not exist.
+   */
+  it('carries a counted view through to the dashboard total', async () => {
+    const { getDashboardData } = await import('@/server/services/dashboard-service');
+    const adminRow = sqliteHandle()
+      .prepare('SELECT id, name, email, role, status FROM users WHERE role = ? LIMIT 1')
+      .get('ADMIN') as Principal;
+
+    const readsBefore = getDashboardData(adminRow).stats.totalReads;
+
+    const post = await draft(author, 'Dashboard reflects a real read');
+    const live = await publish(post);
+
+    const firstVisitor = createClient();
+    const counted = await firstVisitor.request('POST', `/public/posts/${live.slug}/view`);
+    expect(counted.data<{ counted: boolean }>().counted).toBe(true);
+    expect(getDashboardData(adminRow).stats.totalReads).toBe(readsBefore + 1);
+
+    // A refresh by that same visitor must not move the dashboard.
+    const repeat = await firstVisitor.request('POST', `/public/posts/${live.slug}/view`);
+    expect(repeat.data<{ counted: boolean }>().counted).toBe(false);
+    expect(getDashboardData(adminRow).stats.totalReads).toBe(readsBefore + 1);
+
+    // A genuinely different visitor does move it.
+    const secondVisitor = createClient();
+    const other = await secondVisitor.request('POST', `/public/posts/${live.slug}/view`);
+    expect(other.data<{ counted: boolean }>().counted).toBe(true);
+    expect(getDashboardData(adminRow).stats.totalReads).toBe(readsBefore + 2);
   });
 });

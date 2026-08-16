@@ -72,9 +72,14 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
         </div>
       </header>
 
-      <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+      <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6" aria-labelledby="category-articles">
+        {/* The h1 is the category name, so this keeps the outline from jumping
+            straight to the h3 card titles. */}
+        <h2 id="category-articles" className="sr-only">
+          Articles in {category.title}
+        </h2>
         {posts.length === 0 ? (
-          <div className="border-ink-300 rounded-xl border border-dashed bg-white">
+          <div className="border-ink-300 rounded-[var(--radius-surface)] border border-dashed bg-white">
             <EmptyState
               icon={Newspaper}
               title={`Nothing published in ${category.title} yet`}
