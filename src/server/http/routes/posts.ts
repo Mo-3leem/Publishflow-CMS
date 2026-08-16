@@ -20,6 +20,7 @@ import { getRevision, listRevisions, restoreRevision } from '@/server/services/r
 import { performTransition } from '@/server/services/workflow-service';
 import { WORKFLOW_ACTIONS, type WorkflowAction } from '@/lib/workflow';
 import { requireAuth } from '../middleware/auth';
+import { rateLimit } from '../middleware/rate-limit';
 import type { AppBindings } from '../types';
 import { ctxOf, idParamOf, parseJson, parseQuery, requirePrincipal } from './helpers';
 
@@ -29,10 +30,23 @@ export const postRoutes = new Hono<AppBindings>();
 // live in the services so a direct API call is checked exactly like a UI action.
 postRoutes.use('*', requireAuth());
 
-postRoutes.get('/', (c) => {
-  const query = parseQuery(c, listPostsQuery);
-  return c.json(listPosts(requirePrincipal(c), query));
-});
+/**
+ * Staff post list. The keyword branch is metered for the same reason as the
+ * public one; plain filtered listing is an indexed read and is not.
+ */
+postRoutes.get(
+  '/',
+  rateLimit({
+    windowMs: 60_000,
+    max: 60,
+    scope: 'staff-search',
+    when: (c) => (c.req.query('q') ?? '').trim().length > 0,
+  }),
+  (c) => {
+    const query = parseQuery(c, listPostsQuery);
+    return c.json(listPosts(requirePrincipal(c), query));
+  },
+);
 
 postRoutes.post('/', async (c) => {
   const body = await parseJson(c, createPostBody);

@@ -681,7 +681,9 @@ function buildPaths(): JsonObject {
         tags: ['Public'],
         summary: 'Record a de-duplicated read',
         description:
-          'Idempotent per (post, visitor cookie, UTC day). Only the HMAC of the opaque visitor cookie is stored; no IP address is recorded.',
+          'Idempotent per (post, visitor cookie, UTC day). Only the HMAC of the opaque visitor cookie is stored; no IP address is recorded. ' +
+          'The reader is identified by the visitor cookie alone — the session is never consulted — so no CSRF token is required even when one is signed in. ' +
+          'Origin and Sec-Fetch-Site are still enforced, and the endpoint remains rate limited.',
         security: [],
         parameters: [{ name: 'slug', in: 'path', required: true, schema: { type: 'string' } }],
         responses: {

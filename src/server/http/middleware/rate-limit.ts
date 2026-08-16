@@ -1,4 +1,4 @@
-import type { MiddlewareHandler } from 'hono';
+import type { Context, MiddlewareHandler } from 'hono';
 import { getEnv } from '@/server/env';
 import { AppError } from '@/server/errors/app-error';
 import type { AppBindings } from '../types';
@@ -60,11 +60,24 @@ export interface RateLimitOptions {
   max: number;
   /** Distinguishes independent limits sharing one process. */
   scope: string;
+  /**
+   * Only meter the request when this returns true.
+   *
+   * Lets one route carry a limit that applies to its expensive mode only — a
+   * keyword search runs a full-text query, while the same endpoint listing the
+   * newest posts is an indexed lookup and should not consume the budget.
+   */
+  when?: (c: Context<AppBindings>) => boolean;
 }
 
 export const rateLimit =
   (options: RateLimitOptions): MiddlewareHandler<AppBindings> =>
   async (c, next) => {
+    if (options.when && !options.when(c)) {
+      await next();
+      return;
+    }
+
     const now = Date.now();
     prune(now);
 

@@ -8,6 +8,7 @@ import {
   getMediaFile,
   getPublicMediaFile,
   listMedia,
+  MEDIA_SORT_FIELDS,
   updateMedia,
   uploadMedia,
 } from '@/server/services/media-service';
@@ -24,6 +25,9 @@ mediaRoutes.use('*', requireAuth());
 const listQuery = z.object({
   page: z.coerce.number().int().min(1).optional(),
   pageSize: z.coerce.number().int().min(1).max(100).optional(),
+  q: z.string().trim().max(200).optional(),
+  sort: z.enum(MEDIA_SORT_FIELDS).optional(),
+  order: z.enum(['asc', 'desc']).optional(),
 });
 
 mediaRoutes.get('/', (c) => c.json(listMedia(requirePrincipal(c), parseQuery(c, listQuery))));

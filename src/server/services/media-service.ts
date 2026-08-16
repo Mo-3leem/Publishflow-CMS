@@ -4,12 +4,14 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import sharp, { type Sharp, type Metadata } from 'sharp';
 import { fileTypeFromBuffer } from 'file-type';
-import { and, desc, eq, isNull, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, isNull, like, or, sql } from 'drizzle-orm';
+import type { SQL } from 'drizzle-orm';
+import type { SQLiteColumn } from 'drizzle-orm/sqlite-core';
 import { getDb } from '@/server/db';
 import { mediaAssets, posts, siteSettings, users } from '@/server/db/schema';
 import { getEnv } from '@/server/env';
 import { nowIso } from '@/lib/datetime';
-import { buildMeta, parsePagination } from '@/lib/pagination';
+import { buildMeta, parsePagination, resolveOrder, resolveSort } from '@/lib/pagination';
 import { can, canEditMedia } from '@/lib/permissions';
 import { ALLOWED_IMAGE_MIME_TYPES, type PaginationMeta, type Principal } from '@/lib/domain';
 import { AppError } from '@/server/errors/app-error';
@@ -73,14 +75,40 @@ function toDto(row: {
   return { ...row, url: `/api/v1/media/${row.id}/file` };
 }
 
+export const MEDIA_SORT_FIELDS = ['createdAt', 'originalName', 'sizeBytes'] as const;
+export type MediaSortField = (typeof MEDIA_SORT_FIELDS)[number];
+
+/** Sort allow-list: user input selects a key here, never a raw column name. */
+const MEDIA_SORT_COLUMNS = {
+  createdAt: mediaAssets.createdAt,
+  originalName: mediaAssets.originalName,
+  sizeBytes: mediaAssets.sizeBytes,
+} satisfies Record<MediaSortField, SQLiteColumn>;
+
+export interface ListMediaQuery {
+  page?: unknown;
+  pageSize?: unknown;
+  q?: string | null;
+  sort?: unknown;
+  order?: unknown;
+}
+
 export function listMedia(
   actor: Principal,
-  query: { page?: unknown; pageSize?: unknown },
+  query: ListMediaQuery,
 ): { data: MediaDto[]; meta: PaginationMeta } {
   const db = getDb();
   const { page, pageSize, offset } = parsePagination(query.page, query.pageSize, 24);
+  const sort = resolveSort<MediaSortField>(query.sort, MEDIA_SORT_FIELDS, 'createdAt');
+  const order = resolveOrder(query.order, 'desc');
 
-  const where = isNull(mediaAssets.deletedAt);
+  const conditions: SQL[] = [isNull(mediaAssets.deletedAt)];
+  if (query.q && query.q.trim().length > 0) {
+    const needle = `%${query.q.trim().slice(0, 200)}%`;
+    const search = or(like(mediaAssets.originalName, needle), like(mediaAssets.altText, needle));
+    if (search) conditions.push(search);
+  }
+  const where = and(...conditions);
 
   const total =
     db
@@ -89,12 +117,13 @@ export function listMedia(
       .where(where)
       .get()?.count ?? 0;
 
+  const column = MEDIA_SORT_COLUMNS[sort];
   const rows = db
     .select({ ...COLUMNS, uploadedByName: users.name })
     .from(mediaAssets)
     .innerJoin(users, eq(users.id, mediaAssets.uploadedBy))
     .where(where)
-    .orderBy(desc(mediaAssets.createdAt), desc(mediaAssets.id))
+    .orderBy(order === 'asc' ? asc(column) : desc(column), desc(mediaAssets.id))
     .limit(pageSize)
     .offset(offset)
     .all();

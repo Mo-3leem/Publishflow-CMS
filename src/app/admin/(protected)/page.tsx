@@ -99,10 +99,15 @@ export default async function DashboardPage() {
                   <ArrowRight aria-hidden="true" className="text-ink-300 h-4 w-4" />
                 ) : null}
               </div>
-              <p className="text-ink-900 mt-3 text-2xl font-bold tabular-nums">
+              <p className="text-ink-900 mt-3 text-3xl font-bold tracking-tight tabular-nums">
                 {formatNumber(value)}
               </p>
-              <p className="text-ink-500 text-sm">{card.label}</p>
+              <p className="text-ink-600 text-sm font-medium">{card.label}</p>
+              {/* The review queue is the only card that implies work to do, so
+                  it says so once there is something in it. */}
+              {card.status === 'IN_REVIEW' && value > 0 ? (
+                <p className="mt-1 text-xs font-medium text-amber-700">Needs your attention</p>
+              ) : null}
             </>
           );
 
@@ -117,7 +122,7 @@ export default async function DashboardPage() {
           ) : (
             <div
               key={card.label}
-              className="border-ink-200 rounded-xl border bg-white p-4 shadow-sm"
+              className="border-ink-200 shadow-raised rounded-[var(--radius-surface)] border bg-white p-4"
             >
               {body}
             </div>

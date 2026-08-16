@@ -131,6 +131,38 @@ test('public search finds a published article and never surfaces a draft', async
   await expect(page.getByText(draftSubject)).toHaveCount(0);
 });
 
+/**
+ * The media library list is bounded and searchable — the reviewer asked that no
+ * list endpoint return unbounded records.
+ */
+test('the media library supports keyword search and stays bounded', async ({ page }) => {
+  await signIn(page, 'editor');
+  await page.goto('/admin/media');
+
+  await expect(page.getByRole('heading', { name: 'Media' })).toBeVisible();
+
+  const search = page.getByLabel('Search media');
+  await expect(search).toBeVisible();
+
+  // A term that cannot match anything shows the search-specific empty state
+  // rather than the generic "no images yet".
+  await search.fill('zzz-no-such-asset-zzz');
+  await page.getByRole('button', { name: 'Search', exact: true }).click();
+  await expect(page.getByText(/No images match/)).toBeVisible();
+
+  // Clearing restores the unfiltered list.
+  await page.getByRole('button', { name: 'Clear' }).click();
+  await expect(page.getByText(/No images match/)).toHaveCount(0);
+
+  // The API itself refuses an unbounded page size.
+  const unbounded = await page.request.get('/api/v1/media?pageSize=100000');
+  expect(unbounded.status()).toBe(422);
+
+  const bounded = await page.request.get('/api/v1/media?pageSize=100');
+  expect(bounded.status()).toBe(200);
+  expect((await bounded.json()).meta.pageSize).toBeLessThanOrEqual(100);
+});
+
 test('an unpublished slug returns the friendly not-found page', async ({ page }) => {
   await page.goto('/posts/this-slug-does-not-exist');
   await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible();

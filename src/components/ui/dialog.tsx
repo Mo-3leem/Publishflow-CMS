@@ -115,7 +115,7 @@ export function Dialog({
         aria-describedby={description ? descriptionId : undefined}
         tabIndex={-1}
         className={cn(
-          'relative max-h-[92vh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl',
+          'shadow-overlay relative max-h-[92dvh] w-full overflow-y-auto rounded-t-[var(--radius-surface)] bg-white sm:rounded-[var(--radius-surface)]',
           size === 'sm' && 'sm:max-w-md',
           size === 'md' && 'sm:max-w-xl',
           size === 'lg' && 'sm:max-w-3xl',
@@ -146,7 +146,7 @@ export function Dialog({
         {children ? <div className="px-5 py-4">{children}</div> : null}
 
         {footer ? (
-          <div className="border-ink-200 bg-ink-50 flex flex-wrap justify-end gap-2 border-t px-5 py-3.5">
+          <div className="border-ink-200 bg-ink-50 flex flex-col-reverse gap-2 border-t px-5 py-3.5 sm:flex-row sm:justify-end">
             {footer}
           </div>
         ) : null}

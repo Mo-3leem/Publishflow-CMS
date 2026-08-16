@@ -10,6 +10,8 @@ next-env.d.ts
 # production
 build/
 dist/
+# Generated inside the Docker builder stage; never committed.
+docker/seed-demo.cjs
 
 # generated database + wal/shm sidecars
 data/*

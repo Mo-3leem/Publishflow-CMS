@@ -21,6 +21,32 @@ import type { AppBindings } from '../types';
  *
  * Requests with no session are skipped: there is no ambient authority to abuse.
  */
+
+/**
+ * Paths exempt from layer 3 — the token — and from that alone.
+ *
+ * The bar for membership is that the endpoint never acts on the session's
+ * authority. `POST /public/posts/:slug/view` qualifies: it identifies the reader
+ * by an opaque visitor cookie, never reads the session, writes only an
+ * idempotent per-(post, viewer, UTC day) analytics row, and returns a number the
+ * article page already displays to everyone. Forging it cross-site would gain an
+ * attacker nothing they could not get by calling the same public endpoint
+ * directly with their own cookie jar.
+ *
+ * Without this, a staff member reading the public site was silently uncounted:
+ * the ViewTracker is a public component with no token to send, so the mere
+ * presence of a session turned a public analytics ping into a 403.
+ *
+ * `c.req.path` is Hono's normalised pathname — `..` segments are already
+ * collapsed and the query string removed before this runs — so the anchored
+ * single-segment pattern cannot be widened by traversal or a query suffix.
+ */
+const CSRF_TOKEN_EXEMPT_PATHS: readonly RegExp[] = [/^\/api\/v1\/public\/posts\/[^/]+\/view$/];
+
+function isTokenExemptPath(path: string): boolean {
+  return CSRF_TOKEN_EXEMPT_PATHS.some((pattern) => pattern.test(path));
+}
+
 export const csrfProtection = (): MiddlewareHandler<AppBindings> => async (c, next) => {
   if (isSafeMethod(c.req.method)) {
     await next();
@@ -41,6 +67,14 @@ export const csrfProtection = (): MiddlewareHandler<AppBindings> => async (c, ne
 
   if (!isAllowedFetchSite(c.req.header('sec-fetch-site'))) {
     throw new AppError('CSRF_FAILED', 'Cross-site requests are not allowed.');
+  }
+
+  // Deliberately after the origin and Sec-Fetch-Site checks, so an exempt
+  // endpoint still refuses cross-origin and cross-site callers. Only the token
+  // requirement is waived, and only for the paths listed above.
+  if (isTokenExemptPath(c.req.path)) {
+    await next();
+    return;
   }
 
   const env = getEnv();
